@@ -69,7 +69,7 @@ function ScatterplotContainer({xAttributeName, yAttributeName}){
     },[visData,dispatch]);// if dependencies, useEffect is called after each data update, in our case only visData changes.
 
     return(
-        <div ref={divContainerRef} className="scatterplotDivContainer col2">
+        <div ref={divContainerRef} className="scatterplotDivContainer col">
 
         </div>
     )

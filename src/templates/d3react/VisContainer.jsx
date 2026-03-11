@@ -68,7 +68,7 @@ function VisContainer(){
     },[visData,dispatch]);// if dependencies, useEffect is called after each data update, in our case only visData changes.
 
     return(
-        <div ref={divContainerRef} className="visDivContainer">
+        <div ref={divContainerRef} className="visDivContainer col">
 
         </div>
     )
