@@ -18,7 +18,7 @@ function VisContainer(){
     const divContainerRef=useRef(null);
     const visD3Ref = useRef(null)
 
-    const getCharSize = function(){
+    const getChartSize = function(){
         // fixed size
         // return {width:900, height:900};
         // getting size from parent item
@@ -37,7 +37,7 @@ function VisContainer(){
     useEffect(()=>{
         console.log("VisContainer useEffect [] called once the component did mount");
         const visD3 = new VisD3(divContainerRef.current);
-        visD3.create({size:getCharSize()});
+        visD3.create({size:getChartSize()});
         visD3Ref.current = visD3;
         return ()=>{
             // did unmout, the return function is called once the component did unmount (removed for the screen)
