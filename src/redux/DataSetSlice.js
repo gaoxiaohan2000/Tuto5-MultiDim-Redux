@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import Papa from "papaparse"
 
-// get the data in asyncThunk
 export const getDataSet = createAsyncThunk('communities/fetchData', async (args, thunkAPI) => {
   try{
     const response = await fetch('data/communities.csv');
@@ -9,11 +8,24 @@ export const getDataSet = createAsyncThunk('communities/fetchData', async (args,
     console.log("loaded file length:" + responseText.length);
     const responseJson = Papa.parse(responseText,{header:true, dynamicTyping:true});
 
-    // you can also dispatch any other reducer
-    // thunkAPI.dispatch(reducerAction(params))
+    const cleanedData = responseJson.data
+      .map((item, i) => {
+        const cleaned = { ...item, index: i };
+        Object.keys(cleaned).forEach(key => {
+          if (cleaned[key] === "?") cleaned[key] = null;
+          else if (typeof cleaned[key] === 'string' && cleaned[key].trim() !== '' && !isNaN(cleaned[key])) {
+            cleaned[key] = Number(cleaned[key]);
+          }
+        });
+        return cleaned;
+      })
+      .filter(item => {
+        const x = item.medIncome;
+        const y = item.ViolentCrimesPerPop;
+        return x != null && y != null && !isNaN(x) && !isNaN(y);
+      });
 
-    return responseJson.data.map((item,i)=>{return {...item,index:i}});
-    // when a result is returned, extraReducer below is triggered with the case setSeoulBikeData.fulfilled
+    return cleanedData;
   }catch(error){
     console.error("error catched in asyncThunk" + error);
     return thunkAPI.rejectWithValue(error)
@@ -22,27 +34,30 @@ export const getDataSet = createAsyncThunk('communities/fetchData', async (args,
 
 export const dataSetSlice = createSlice({
   name: 'dataSet',
-  initialState: [],
+  initialState: {
+    dataSet: [],
+    selectedCommunities: []          
+  },
   reducers: {
-      // add reducer if needed
+    setSelectedCommunities: (state, action) => {
+      state.selectedCommunities = Array.isArray(action.payload) ? action.payload : [];
+      console.log("Redux updated selectedCommunities:", state.selectedCommunities.length, "items");
+    }
   },
   extraReducers: builder => {
-    builder.addCase(getDataSet.pending, (state, action) => {
+    builder.addCase(getDataSet.pending, (state) => {
       console.log("extraReducer getDataSet.pending");
-      // do something with state, e.g. to change a status
     })
     builder.addCase(getDataSet.fulfilled, (state, action) => {
-      return action.payload
+      state.dataSet = action.payload;
+      console.log("Data loaded successfully, total items:", action.payload.length);
     })
     builder.addCase(getDataSet.rejected, (state, action) => {
-      // Add any fetched house to the array
-      const error = action.payload
-      console.log("extraReducer getDataSet.rejected with error" + error);
+      console.log("extraReducer getDataSet.rejected");
     })
   }
 })
 
-// Action creators are generated for each case reducer function
-// export const { reducerAction } = dataSetSlice.actions
+export const { setSelectedCommunities } = dataSetSlice.actions;
 
-export default dataSetSlice.reducer
+export default dataSetSlice.reducer;

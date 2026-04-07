@@ -1,78 +1,109 @@
 import './Scatterplot.css'
 import { useEffect, useRef } from 'react';
-import {useSelector, useDispatch} from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux';
+import { setSelectedCommunities } from '../../redux/DataSetSlice';
 
 import ScatterplotD3 from './Scatterplot-d3';
 
-// TODO: import action methods from reducers
+function ScatterplotContainer({ xAttributeName, yAttributeName }) {
+    const visData = useSelector(state => state.dataSet.dataSet);           
+    const selectedCommunities = useSelector(state => state.dataSet.selectedCommunities || []); 
+    const dispatch = useDispatch();   
 
-function ScatterplotContainer({xAttributeName, yAttributeName}){
-    const visData = useSelector(state =>state.dataSet)
-    const dispatch = useDispatch();
+    const divContainerRef = useRef(null);
+    const scatterplotD3Ref = useRef(null);
 
-    // every time the component re-render
-    useEffect(()=>{
-        console.log("ScatterplotContainer useEffect (called each time matrix re-renders)");
-    }); // if no second parameter, useEffect is called at each re-render
-
-    const divContainerRef=useRef(null);
-    const scatterplotD3Ref = useRef(null)
-
-    const getChartSize = function(){
-        // fixed size
-        // return {width:900, height:900};
-        // getting size from parent item
-        let width;// = 800;
-        let height;// = 100;
-        if(divContainerRef.current!==undefined){
-            width=divContainerRef.current.offsetWidth;
-            // width = '100%';
-            height=divContainerRef.current.offsetHeight;
-            // height = '100%';
+    /**
+     * Get current container size for the chart
+     */
+    const getChartSize = () => {
+        if (!divContainerRef.current) {
+            return { width: 800, height: 600 };
         }
-        return {width:width,height:height};
-    }
+        const { offsetWidth, offsetHeight } = divContainerRef.current;
+        return { 
+            width: offsetWidth || 800, 
+            height: offsetHeight || 600 
+        };
+    };
 
-    // did mount called once the component did mount
-    useEffect(()=>{
-        console.log("ScatterplotContainer useEffect [] called once the component did mount");
+    // 1. Component did mount → Initialize D3 instance
+    useEffect(() => {    
         const scatterplotD3 = new ScatterplotD3(divContainerRef.current);
-        scatterplotD3.create({size:getChartSize()});
+        scatterplotD3.create({ size: getChartSize() });
+        
         scatterplotD3Ref.current = scatterplotD3;
-        return ()=>{
-            // did unmout, the return function is called once the component did unmount (removed for the screen)
-            console.log("ScatterplotContainer useEffect [] return function, called when the component did unmount...");
-            const scatterplotD3 = scatterplotD3Ref.current;
-            scatterplotD3.clear()
-        }
-    },[]);// if empty array, useEffect is called after the component did mount (has been created)
 
-    // did update, called each time dependencies change, dispatch remain stable over component cycles
-    useEffect(()=>{
-        console.log("ScatterplotContainer useEffect with dependency [scatterplotData, xAttribute, yAttribute, scatterplotControllerMethods], called each time scatterplotData changes...");
+        return () => {
+            scatterplotD3Ref.current?.clear();
+        };
+    }, []);
 
-        const handleOnClick = function(itemData){
-        }
-        const handleOnMouseEnter = function(itemData){
-        }
-        const handleOnMouseLeave = function(){
-        }
+    // 2. Re-render scatterplot whenever data or selection changes
+    useEffect(() => {
+        const scatterplotD3 = scatterplotD3Ref.current;
+        if (!scatterplotD3 || !visData || visData.length === 0) return;
 
-        const controllerMethods={
+        const handleOnClick = (itemData) => { };
+
+        const handleBrushSelection = (selectedItems) => {
+            dispatch(setSelectedCommunities(selectedItems));   // Update Redux
+        };
+
+        const controllerMethods = {
             handleOnClick,
-            handleOnMouseEnter,
-            handleOnMouseLeave
-        }
+            handleBrushSelection,
+            handleOnMouseEnter: () => {},
+            handleOnMouseLeave: () => {}
+        };
 
-        // get the current instance of scatterplotD3 from the Ref...
-        // call renderScatterplot of ScatterplotD3...;
-    },[visData,dispatch]);// if dependencies, useEffect is called after each data update, in our case only visData changes.
+        scatterplotD3.renderScatterplot(
+            visData,
+            xAttributeName,
+            yAttributeName,
+            controllerMethods,
+            selectedCommunities
+        );
+    }, [visData, xAttributeName, yAttributeName, selectedCommunities, dispatch]);
 
-    return(
-        <div ref={divContainerRef} className="scatterplotDivContainer col">
-
+    return (
+        <div 
+            ref={divContainerRef} 
+            className="scatterplotDivContainer col"
+            style={{
+                height: "600px",
+                width: "100%",
+                border: "1px solid #ccc",
+                position: "relative",
+                backgroundColor: "#fafafa"
+            }}
+        >
+            {(!visData || visData.length === 0) && (
+                <div style={{
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    color: "#666",
+                    fontSize: "18px",
+                    fontWeight: 500,
+                    zIndex: 10,
+                    textAlign: "center",
+                    pointerEvents: "none"
+                }}>
+                    Loading data...<br />
+                    <small style={{ 
+                        fontSize: "14px", 
+                        color: "#999", 
+                        marginTop: "8px", 
+                        display: "block" 
+                    }}>
+                        Please wait while the dataset is loaded
+                    </small>
+                </div>
+            )}
         </div>
-    )
+    );
 }
 
 export default ScatterplotContainer;
